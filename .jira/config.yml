@@ -8,4 +8,58 @@ deployments:
   services:
     ids:
     - b:YXJpOmNsb3VkOmdyYXBoOjpzZXJ2aWNlLzIzMDQ2ZDJiLTQyMGItNGVjMC04OTAwLWNhYzJjZWIxZGMyMi9mYjUwMmYxZS01MDQyLTExZjAtYWZhNC0xMjJmYTYwYWI1M2Q=
-Test  
+# Jira integration configuration for mobile-api
+# Links commits, branches, and PRs to Jira work items
+jira:
+  site: pgregg-demo-1.atlassian.net
+  project_keys:
+    - MOBL
+    - SEC
+    - PLAT
+  # Auto-transition issues based on PR lifecycle
+  workflow:
+    on_branch_create:
+      transition: "In Progress"
+    on_pr_open:
+      transition: "In Review"
+      add_label: "code-review"
+    on_pr_merge:
+      transition: "Ready for QA"
+      remove_label: "code-review"
+    on_pr_close:
+      transition: "Done"
+  # Branch naming enforcement
+  branch_policy:
+    require_issue_key: true
+    pattern: "^(MOBL|SEC|PLAT)-\\d+-.+$"
+    protected_branches:
+      - main
+      - release/*
+  # Conditional access policy enforcement (MOBL-248)
+  security:
+    require_signed_commits: true
+    require_status_checks:
+      - ci/build
+      - ci/unit-tests
+      - security/sast-scan
+      - security/conditional-access-validation
+    network_segments:
+      ot_network:
+        enforce_mfa: true
+        allowed_reviewers_group: "ot-security-approvers"
+        block_external_contributors: true
+  # PR metadata sync
+  sync:
+    update_issue_on_review: true
+    post_pr_link_as_comment: true
+    mirror_pr_description: false
+    fields:
+      - status
+      - assignee
+      - fix_version
+  notifications:
+    slack_channel: "#mobile-api-deploys"
+    notify_on:
+      - pr_merged
+      - build_failed
+      - security_violation 
